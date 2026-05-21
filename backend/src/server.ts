@@ -6,7 +6,7 @@ import morgan from "morgan";
 import { prisma } from "./lib/prisma";
 import emailRoutes from "./routes/email.routes";
 import { globalErrorHandler } from "./middlewares/error.middleware";
-
+import ragRoutes from "./routes/rag.routes";
 dotenv.config();
 
 const app = express();
@@ -17,6 +17,7 @@ app.use(express.json());
 app.use(morgan("dev"));
 app.use("/api", emailRoutes);
 app.use(globalErrorHandler);
+app.use("/api/rag", ragRoutes);
 
 app.get("/health", (_req, res) => {
   res.status(200).json({

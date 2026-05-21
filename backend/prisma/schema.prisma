@@ -33,6 +33,7 @@ enum EmailCategory {
   BILLING
   SPAM
   INTERNAL
+  SECURITY
   OTHER
 }
 
