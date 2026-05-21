@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import helmet from "helmet";
 import morgan from "morgan";
+import { prisma } from "./lib/prisma";
 
 dotenv.config();
 
@@ -25,3 +26,14 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+async function connectDB() {
+  try {
+    await prisma.$connect();
+    console.log("Database connected");
+  } catch (error) {
+    console.error("Database connection failed", error);
+  }
+}
+
+connectDB();
