@@ -1,8 +1,249 @@
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
   provider = "postgresql"
   url = env("DATABASE_URL")
+  extensions = [pgvector(map: "vector")]
+}
+
+enum ContactStatus {
+  ACTIVE
+  VIP
+  BLOCKED
+  CHURNED
+}
+
+enum ThreadStatus {
+  OPEN
+  RESOLVED
+  ESCALATED
+  IGNORED
+}
+
+enum EmailCategory {
+  COMPLAINT
+  INQUIRY
+  BUG_REPORT
+  FEATURE_REQUEST
+  COMPLIANCE
+  LEGAL
+  BILLING
+  SPAM
+  INTERNAL
+  OTHER
+}
+
+enum UrgencyLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum EmailStatus {
+  RECEIVED
+  PROCESSING
+  REPLIED
+  ESCALATED
+  IGNORED
+}
+
+enum ActionType {
+  AUTO_REPLY
+  ESCALATE
+  LEGAL_FLAG
+  TICKET_CREATED
+  IGNORED
+}
+
+model Contact {
+  id                String         @id @default(uuid())
+  email             String         @unique
+  name              String?
+  company           String?
+  status            ContactStatus  @default(ACTIVE)
+  accountValue      Float          @default(0)
+  churnRiskScore    Float          @default(0)
+  createdAt         DateTime       @default(now())
+  lastContactAt     DateTime?
+
+  threads           Thread[]
+  sentimentHistory  SentimentHistory[]
+
+  @@index([email])
+}
+
+model Thread {
+  id              String        @id @default(uuid())
+  threadId        String        @unique
+  subject         String
+  senderEmail     String
+  status          ThreadStatus  @default(OPEN)
+  assignedTo      String?
+
+  firstSeenAt     DateTime
+  lastUpdatedAt   DateTime
+
+  contactId       String
+  contact         Contact       @relation(fields: [contactId], references: [id])
+
+  emails          Email[]
+
+  @@index([threadId])
+  @@index([senderEmail])
+}
+
+model Email {
+  id                String          @id @default(uuid())
+  messageId         String          @unique
+  sender            String
+  subject           String
+  body              String          @db.Text
+
+  timestamp         DateTime
+
+  category          EmailCategory?
+  urgency           UrgencyLevel?
+  sentimentScore    Float?
+  confidence        Float?
+
+  requiresHuman     Boolean         @default(false)
+
+  rawEntities       Json?
+
+  status            EmailStatus     @default(RECEIVED)
+
+  createdAt         DateTime        @default(now())
+
+  threadId          String
+  thread            Thread          @relation(fields: [threadId], references: [id])
+
+  actions           Action[]
+  agentRuns         AgentRun[]
+
+  @@index([messageId])
+  @@index([sender])
+  @@index([timestamp])
+}
+
+model Action {
+  id                    String        @id @default(uuid())
+
+  actionType            ActionType
+
+  proposedContent       String?       @db.Text
+
+  reasoningLog          Json?
+
+  isApproved            Boolean       @default(false)
+
+  approvedBy            String?
+
+  executedAt            DateTime?
+
+  createdAt             DateTime      @default(now())
+
+  emailId               String
+  email                 Email         @relation(fields: [emailId], references: [id])
+
+  @@index([emailId])
+}
+
+model KnowledgeChunk {
+  id              String      @id @default(uuid())
+
+  sourceDoc       String
+
+  chunkText       String      @db.Text
+
+  embedding       Unsupported("vector")
+
+  createdAt       DateTime    @default(now())
+}
+
+model WebIntelligenceCache {
+  id              String      @id @default(uuid())
+
+  sourceUrl       String
+
+  targetEntity    String
+
+  scrapedData     Json
+
+  scrapedAt       DateTime
+
+  expiresAt       DateTime
+
+  @@index([targetEntity])
+}
+
+model AuditLog {
+  id              String      @id @default(uuid())
+
+  entityType      String
+
+  entityId        String
+
+  action          String
+
+  performedBy     String
+
+  diff            Json?
+
+  timestamp       DateTime    @default(now())
+
+  @@index([entityType, entityId])
+}
+
+model AgentRun {
+  id              String      @id @default(uuid())
+
+  emailId         String
+
+  reasoningTrace  Json
+
+  toolCalls       Json
+
+  finalDecision   String
+
+  dryRun          Boolean     @default(false)
+
+  createdAt       DateTime    @default(now())
+
+  email           Email       @relation(fields: [emailId], references: [id])
+
+  @@index([emailId])
+}
+
+model SentimentHistory {
+  id              String      @id @default(uuid())
+
+  sender          String
+
+  score           Float
+
+  recordedAt      DateTime
+
+  contactId       String
+  contact         Contact     @relation(fields: [contactId], references: [id])
+
+  @@index([sender])
+  @@index([recordedAt])
+}
+
+model IngestionJob {
+  id              String      @id @default(uuid())
+
+  messageId       String
+
+  status          String
+
+  errorMessage    String?
+
+  startedAt       DateTime    @default(now())
+
+  completedAt     DateTime?
 }
