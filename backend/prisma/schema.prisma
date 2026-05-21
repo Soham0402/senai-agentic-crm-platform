@@ -36,6 +36,13 @@ enum EmailCategory {
   OTHER
 }
 
+enum IngestionStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
 enum UrgencyLevel {
   LOW
   MEDIUM
@@ -239,7 +246,7 @@ model IngestionJob {
 
   messageId       String
 
-  status          String
+  status          IngestionStatus
 
   errorMessage    String?
 

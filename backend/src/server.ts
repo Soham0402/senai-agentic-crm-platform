@@ -4,6 +4,8 @@ import dotenv from "dotenv";
 import helmet from "helmet";
 import morgan from "morgan";
 import { prisma } from "./lib/prisma";
+import emailRoutes from "./routes/email.routes";
+import { globalErrorHandler } from "./middlewares/error.middleware";
 
 dotenv.config();
 
@@ -13,6 +15,8 @@ app.use(cors());
 app.use(helmet());
 app.use(express.json());
 app.use(morgan("dev"));
+app.use("/api", emailRoutes);
+app.use(globalErrorHandler);
 
 app.get("/health", (_req, res) => {
   res.status(200).json({
